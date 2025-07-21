@@ -25,6 +25,7 @@ app.get("*", (req, res) => {
   const path = req.path;
   const rule = redirectRules[path];
 
+  console.log("Requested path:", path);
   if (!rule) {
     return res.status(404).send("Not Found");
   }
