@@ -10,7 +10,7 @@ const URL_A = 'https://shop.aurevia.id/dermaglow-pro';       // For Indonesian v
 const URL_B = 'https://google.com';   // For everyone else
 
 // Toggle this to true when testing locally
-const TEST_MODE = true;
+const TEST_MODE = false;
 
 app.get('/', (req, res) => {
     let country, ip;
