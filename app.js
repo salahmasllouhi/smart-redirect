@@ -1,6 +1,7 @@
 const express = require("express");
 const requestIp = require("request-ip");
 const geoip = require("geoip-lite");
+const { URL } = require("url"); // Needed for query handling
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -19,7 +20,7 @@ const redirectRules = {
   }
 };
 
-// ✅ Handle dynamic paths
+// ✅ Handle dynamic paths with query parameter support
 app.get("*", (req, res) => {
   const path = req.path;
   const rule = redirectRules[path];
@@ -34,11 +35,17 @@ app.get("*", (req, res) => {
 
   console.log(`Path: ${path}, IP: ${clientIp}, Country: ${country}`);
 
-  if (country === rule.targetCountry) {
-    return res.redirect(rule.urlA);
-  } else {
-    return res.redirect(rule.urlB);
+  // Choose destination based on country
+  const baseRedirect = country === rule.targetCountry ? rule.urlA : rule.urlB;
+
+  // ✅ Preserve query string (e.g. utm_source=facebook)
+  const finalUrl = new URL(baseRedirect);
+  const queryString = req.originalUrl.split("?")[1];
+  if (queryString) {
+    finalUrl.search = queryString;
   }
+
+  return res.redirect(finalUrl.toString());
 });
 
 app.listen(port, () => {
