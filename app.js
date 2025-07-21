@@ -4,37 +4,51 @@ const geoip = require('geoip-lite');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Redirect rules
-const TARGET_COUNTRY = 'ID';  // 'ID' = Indonesia
-const URL_A = 'https://shop.aurevia.id/dermaglow-pro';       // For Indonesian visitors
-const URL_B = 'https://google.com';   // For everyone else
-
-// Toggle this to true when testing locally
+// Toggle test mode to simulate location
 const TEST_MODE = false;
+const TEST_IP = '114.124.123.1'; // Example: Indonesia IP
 
-app.get('/', (req, res) => {
-    let country, ip;
+// Define multiple redirect rules
+const redirectRules = {
+    "/DermaGlowPro": {
+        targetCountry: "ID",
+        urlA: "https://shop.aurevia.id/dermaglow-pro",
+        urlB: "https://google.com/"
+    },
+    "/Salahox": {
+        targetCountry: "ID",
+        urlA: "https://www.youtube.com/",
+        urlB: "https://google.com/"
+    }
+};
 
+app.get('*', (req, res) => {
+    const path = req.path;
+    const rule = redirectRules[path];
+
+    if (!rule) {
+        return res.status(404).send("No redirect rule for this path.");
+    }
+
+    let ip;
     if (TEST_MODE) {
-        // Simulate visitor from Indonesia
-        ip = '114.124.123.1';  // Sample Indonesian IP
-        console.log('🧪 TEST MODE ON');
+        ip = TEST_IP;
+        console.log("🧪 TEST MODE ON");
     } else {
-        // Use real visitor IP
         ip = req.headers['x-forwarded-for']?.split(',')[0] || req.connection.remoteAddress;
     }
 
     const geo = geoip.lookup(ip);
-    country = geo?.country || 'UNKNOWN';
+    const country = geo?.country || 'UNKNOWN';
 
-    console.log(`🌍 Visitor IP: ${ip}, Country: ${country}`);
+    console.log(`🌍 Visitor to ${path} | IP: ${ip} | Country: ${country}`);
 
-    if (country === TARGET_COUNTRY) {
-        console.log('✅ Redirecting to URL A (Indonesia)');
-        return res.redirect(URL_A);
+    if (country === rule.targetCountry) {
+        console.log("✅ Redirecting to URL A");
+        return res.redirect(rule.urlA);
     } else {
-        console.log('🔁 Redirecting to URL B (Global)');
-        return res.redirect(URL_B);
+        console.log("🔁 Redirecting to URL B");
+        return res.redirect(rule.urlB);
     }
 });
 
