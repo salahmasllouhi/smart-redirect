@@ -1,12 +1,11 @@
 const express = require("express");
 const requestIp = require("request-ip");
 const geoip = require("geoip-lite");
-const { URL } = require("url"); // Needed for query handling
+const { URL } = require("url");
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// ✅ Define multiple redirect rules
 const redirectRules = {
   "/DermaGlowPro": {
     targetCountry: "ID",
@@ -20,13 +19,17 @@ const redirectRules = {
   }
 };
 
-// ✅ Handle dynamic paths with query parameter support
-app.get("*", (req, res) => {
+// ✅ FIX: Use a regular expression for the catch-all route
+app.get(/^\/.*/, (req, res) => {
   const path = req.path;
   const rule = redirectRules[path];
 
   console.log("Requested path:", path);
   if (!rule) {
+    // It's good practice to ignore requests for favicon.ico
+    if (path === '/favicon.ico') {
+      return res.status(204).send();
+    }
     return res.status(404).send("Not Found");
   }
 
@@ -36,17 +39,15 @@ app.get("*", (req, res) => {
 
   console.log(`Path: ${path}, IP: ${clientIp}, Country: ${country}`);
 
-  // Choose destination based on country
   const baseRedirect = country === rule.targetCountry ? rule.urlA : rule.urlB;
 
-  // ✅ Preserve query string (e.g. utm_source=facebook)
   const finalUrl = new URL(baseRedirect);
   const queryString = req.originalUrl.split("?")[1];
   if (queryString) {
     finalUrl.search = queryString;
   }
 
-  return res.redirect(finalUrl.toString());
+  return res.redirect(302, finalUrl.toString());
 });
 
 app.listen(port, () => {
